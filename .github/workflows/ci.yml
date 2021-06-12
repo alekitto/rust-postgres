@@ -46,6 +46,7 @@ jobs:
           path: target
           key: clippy-target-${{ runner.os }}-${{ steps.rust-version.outputs.version }}-${{ hashFiles('Cargo.lock') }}y
       - run: cargo clippy --all --all-targets
+      - run: cargo clippy --all --all-targets --all-features
 
   check-wasm32:
     name: check-wasm32

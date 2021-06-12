@@ -168,6 +168,7 @@ mod maybe_tls_stream;
 mod portal;
 mod prepare;
 mod query;
+pub mod raw;
 pub mod row;
 mod simple_query;
 #[cfg(feature = "runtime")]

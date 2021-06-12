@@ -1,15 +1,14 @@
 use crate::client::{InnerClient, Responses};
 use crate::codec::FrontendMessage;
 use crate::connection::RequestMessages;
+use crate::raw::simple_query::{encode, internal_simple_query};
 use crate::query::extract_row_affected;
 use crate::{Error, SimpleQueryMessage, SimpleQueryRow};
-use bytes::Bytes;
 use fallible_iterator::FallibleIterator;
 use futures_util::{ready, Stream};
 use log::debug;
 use pin_project_lite::pin_project;
 use postgres_protocol::message::backend::Message;
-use postgres_protocol::message::frontend;
 use std::marker::PhantomPinned;
 use std::pin::Pin;
 use std::sync::Arc;
@@ -33,13 +32,8 @@ impl SimpleColumn {
 }
 
 pub async fn simple_query(client: &InnerClient, query: &str) -> Result<SimpleQueryStream, Error> {
-    debug!("executing simple query: {}", query);
-
-    let buf = encode(client, query)?;
-    let responses = client.send(RequestMessages::Single(FrontendMessage::Raw(buf)))?;
-
     Ok(SimpleQueryStream {
-        responses,
+        responses: internal_simple_query(client, query)?,
         columns: None,
         _p: PhantomPinned,
     })
@@ -61,13 +55,6 @@ pub async fn batch_execute(client: &InnerClient, query: &str) -> Result<(), Erro
             _ => return Err(Error::unexpected_message()),
         }
     }
-}
-
-fn encode(client: &InnerClient, query: &str) -> Result<Bytes, Error> {
-    client.with_buf(|buf| {
-        frontend::query(query, buf).map_err(Error::encode)?;
-        Ok(buf.split().freeze())
-    })
 }
 
 pin_project! {

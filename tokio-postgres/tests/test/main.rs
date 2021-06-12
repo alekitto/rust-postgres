@@ -21,6 +21,8 @@ use tokio_postgres::{
 
 mod binary_copy;
 mod parse;
+#[cfg(feature = "raw")]
+mod raw;
 #[cfg(feature = "runtime")]
 mod runtime;
 mod types;
