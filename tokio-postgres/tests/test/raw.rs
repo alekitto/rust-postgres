@@ -3,13 +3,14 @@ use futures::TryStreamExt;
 use postgres_protocol::message::backend::Message;
 use tokio_postgres::raw::{simple_query, SimpleColumn, SimpleQueryRow};
 use tokio_postgres::types::Type;
+use tokio_postgres::Error;
 
 #[cfg(feature = "raw")]
 #[tokio::test]
 async fn t_simple_query() {
     let client = connect("user=postgres").await;
 
-    let messages: Vec<Message> = simple_query(
+    let messages: Vec<Message> = simple_query::<Error>(
         &client,
         "CREATE TEMPORARY TABLE foo (
                 id SERIAL,

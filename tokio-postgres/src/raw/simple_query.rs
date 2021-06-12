@@ -20,6 +20,8 @@ use postgres_protocol::message::frontend;
 #[cfg(feature = "raw")]
 use postgres_types::FromSql;
 #[cfg(feature = "raw")]
+use std::marker::PhantomData;
+#[cfg(feature = "raw")]
 use std::marker::PhantomPinned;
 #[cfg(feature = "raw")]
 use std::ops::Range;
@@ -32,13 +34,17 @@ use std::task::{Context, Poll};
 
 /// Executes a query via the simple query protocol and return the response stream.
 #[cfg(feature = "raw")]
-pub fn simple_query(client: &Client, query: &str) -> Result<SimpleQueryStream, Error> {
+pub fn simple_query<E>(client: &Client, query: &str) -> Result<SimpleQueryStream<E>, E>
+where
+    E: std::convert::From<crate::error::Error>,
+{
     let inner = client.inner().as_ref();
     let responses = internal_simple_query(inner, query)?;
 
     Ok(SimpleQueryStream {
         responses,
         _p: PhantomPinned,
+        _e: PhantomData::default(),
     })
 }
 
@@ -59,16 +65,20 @@ pub(crate) fn encode(client: &InnerClient, query: &str) -> Result<Bytes, Error> 
 #[cfg(feature = "raw")]
 pin_project! {
     /// A stream of simple query results.
-    pub struct SimpleQueryStream {
+    pub struct SimpleQueryStream<E> {
         responses: Responses,
         #[pin]
         _p: PhantomPinned,
+        _e: PhantomData<E>
     }
 }
 
 #[cfg(feature = "raw")]
-impl Stream for SimpleQueryStream {
-    type Item = Result<Message, Error>;
+impl<E> Stream for SimpleQueryStream<E>
+where
+    E: std::convert::From<crate::error::Error>,
+{
+    type Item = Result<Message, E>;
 
     fn poll_next(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Option<Self::Item>> {
         let this = self.project();
@@ -78,15 +88,15 @@ impl Stream for SimpleQueryStream {
             | Ok(Message::RowDescription(_))
             | Ok(Message::DataRow(_))
             | Ok(Message::ReadyForQuery(_))
-            | Ok(Message::EmptyQueryResponse) => Poll::Ready(Some(message)),
+            | Ok(Message::EmptyQueryResponse) => Poll::Ready(Some(Ok(message.unwrap()))),
             Err(e) => {
                 if e.is_closed() {
                     Poll::Ready(None)
                 } else {
-                    Poll::Ready(Some(Err(Error::unexpected_message())))
+                    Poll::Ready(Some(Err(Error::unexpected_message().into())))
                 }
             }
-            _ => Poll::Ready(Some(Err(Error::unexpected_message()))),
+            _ => Poll::Ready(Some(Err(Error::unexpected_message().into()))),
         }
     }
 }
