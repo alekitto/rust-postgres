@@ -1,7 +1,7 @@
 use crate::connect;
 use futures::TryStreamExt;
 use postgres_protocol::message::backend::Message;
-use tokio_postgres::raw::{simple_query, SimpleColumn, SimpleQueryRow};
+use tokio_postgres::raw::{prepare, simple_query, SimpleColumn, SimpleQueryRow};
 use tokio_postgres::types::Type;
 use tokio_postgres::Error;
 
@@ -65,4 +65,29 @@ async fn t_simple_query() {
         Message::CommandComplete(_) => {}
         _ => panic!("unexpected message"),
     }
+}
+
+#[cfg(feature = "raw")]
+#[tokio::test]
+async fn query_prepare() {
+    let client = connect("user=postgres").await;
+
+    client
+        .batch_execute("CREATE TEMPORARY TABLE foo (id SERIAL, name TEXT)")
+        .await
+        .unwrap();
+
+    let insert = prepare::<tokio_postgres::Error>(
+        &client,
+        "INSERT INTO foo (name) VALUES ($1), ($2)",
+        "i",
+        &[],
+    )
+    .await;
+    let select =
+        prepare::<tokio_postgres::Error>(&client, "SELECT id, name FROM foo ORDER BY id", "s", &[])
+            .await;
+
+    assert!(matches!(insert, Ok(_)));
+    assert!(matches!(select, Ok(_)));
 }
