@@ -36,4 +36,9 @@ impl Portal {
             name: name.to_string(),
         }))
     }
+
+    /// Gets the name of the current portal.
+    pub fn name(&self) -> &str {
+        &self.0.name
+    }
 }
