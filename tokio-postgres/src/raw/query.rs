@@ -20,8 +20,11 @@ pub async fn prepare<E>(
     query: &str,
     name: &str,
     types_oid: &[Oid],
-) -> Result<Statement, Error> {
-    internal_prepare(client.inner(), query, name, types_oid).await
+) -> Result<Statement, E>
+where
+    E: std::convert::From<crate::error::Error>,
+{
+    Ok(internal_prepare(client.inner(), query, name, types_oid).await?)
 }
 
 pub async fn internal_prepare(
@@ -56,15 +59,16 @@ pub async fn internal_prepare(
 
 /// Binds some parameters to a prepared statement, thus creating a portal
 /// Portals could be then executed or dropped when no more needed.
-pub async fn bind<'a, I>(
+pub async fn bind<'a, I, E>(
     client: &Client,
     statement: &Statement,
     name: &str,
     params: I,
-) -> Result<Portal, Error>
+) -> Result<Portal, E>
 where
     I: IntoIterator<Item = &'a Option<BytesMut>>,
     I::IntoIter: ExactSizeIterator,
+    E: std::convert::From<crate::error::Error>,
 {
     let inner = client.inner();
     let buf = inner.with_buf(|buf| {
@@ -76,7 +80,7 @@ where
     let mut responses = inner.send(RequestMessages::Single(FrontendMessage::Raw(buf)))?;
     match responses.next().await? {
         Message::BindComplete => {}
-        _ => return Err(Error::unexpected_message()),
+        _ => return Err(E::from(Error::unexpected_message())),
     }
 
     Ok(Portal::new(inner, name))

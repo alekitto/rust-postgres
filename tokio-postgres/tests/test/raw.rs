@@ -112,7 +112,7 @@ async fn query_bind() {
     .await
     .unwrap();
 
-    let portal = bind(
+    let portal = bind::<&[Option<BytesMut>; 2], tokio_postgres::Error>(
         &client,
         &insert,
         "i",
