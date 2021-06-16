@@ -1,7 +1,8 @@
 use crate::connect;
+use bytes::BytesMut;
 use futures::TryStreamExt;
 use postgres_protocol::message::backend::Message;
-use tokio_postgres::raw::{prepare, simple_query, SimpleColumn, SimpleQueryRow};
+use tokio_postgres::raw::{bind, prepare, simple_query, SimpleColumn, SimpleQueryRow};
 use tokio_postgres::types::Type;
 use tokio_postgres::Error;
 
@@ -90,4 +91,34 @@ async fn query_prepare() {
 
     assert!(matches!(insert, Ok(_)));
     assert!(matches!(select, Ok(_)));
+}
+
+#[cfg(feature = "raw")]
+#[tokio::test]
+async fn query_bind() {
+    let client = connect("user=postgres").await;
+
+    client
+        .batch_execute("CREATE TEMPORARY TABLE foo (id SERIAL, name TEXT)")
+        .await
+        .unwrap();
+
+    let insert = prepare::<tokio_postgres::Error>(
+        &client,
+        "INSERT INTO foo (name) VALUES ($1), ($2)",
+        "i",
+        &[],
+    )
+    .await
+    .unwrap();
+
+    let portal = bind(
+        &client,
+        &insert,
+        "i",
+        &[Some(BytesMut::from("foo")), Some(BytesMut::from("foo"))],
+    )
+    .await;
+
+    assert!(matches!(portal, Ok(_)));
 }
