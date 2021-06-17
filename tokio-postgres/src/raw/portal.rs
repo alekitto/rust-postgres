@@ -1,12 +1,9 @@
 use crate::client::InnerClient;
-use crate::codec::FrontendMessage;
-use crate::connection::RequestMessages;
 use crate::raw::Statement;
-use postgres_protocol::message::frontend;
 use std::sync::{Arc, Weak};
 
 struct Inner {
-    client: Weak<InnerClient>,
+    _client: Weak<InnerClient>,
     _statement: Statement,
     name: String,
 }
@@ -25,7 +22,7 @@ impl Portal {
         name: S,
     ) -> Portal {
         Portal(Arc::new(Inner {
-            client: Arc::downgrade(client),
+            _client: Arc::downgrade(client),
             _statement: statement,
             name: name.to_string(),
         }))

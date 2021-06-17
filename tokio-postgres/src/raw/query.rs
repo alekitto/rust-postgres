@@ -60,7 +60,9 @@ pub fn bind<'a, I, E>(
     client: &Client,
     statement: Statement,
     name: &str,
+    params_formats: &[i16],
     params: I,
+    result_formats: &[i16],
 ) -> Result<Portal, E>
 where
     I: IntoIterator<Item = &'a Option<BytesMut>>,
@@ -69,7 +71,14 @@ where
 {
     let inner = client.inner();
     inner.raw_buf(|buf| {
-        encode_bind(&statement, params, &name, buf)?;
+        encode_bind(
+            &statement,
+            params_formats,
+            params,
+            &name,
+            result_formats,
+            buf,
+        )?;
         Ok(())
     })?;
 
@@ -78,8 +87,10 @@ where
 
 pub fn encode_bind<'a, I>(
     statement: &Statement,
+    params_formats: &[i16],
     params: I,
     portal: &str,
+    result_formats: &[i16],
     buf: &mut BytesMut,
 ) -> Result<(), Error>
 where
@@ -90,7 +101,7 @@ where
     let r = frontend::bind(
         portal,
         statement.name(),
-        Some(1),
+        params_formats.iter().copied(),
         params,
         |param, buf| match param {
             Some(bytes) => {
@@ -99,7 +110,7 @@ where
             }
             None => Ok(postgres_protocol::IsNull::Yes),
         },
-        Some(1),
+        result_formats.iter().copied(),
         buf,
     );
 
