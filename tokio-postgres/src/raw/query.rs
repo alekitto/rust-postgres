@@ -48,7 +48,6 @@ pub fn internal_prepare(
 
     client.raw_buf(|buf| {
         frontend::parse(name, query, types_oid.iter().copied(), buf).map_err(Error::encode)?;
-        frontend::describe(b'S', &name, buf).map_err(Error::encode)?;
         Ok(())
     })?;
 

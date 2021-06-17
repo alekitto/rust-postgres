@@ -160,19 +160,11 @@ async fn query_execute_no_data() {
         .await
         .unwrap();
 
-    assert_eq!(messages.len(), 6);
+    assert_eq!(messages.len(), 4);
 
     let mut itr = messages.into_iter();
     match itr.next().unwrap() {
         Message::ParseComplete => {}
-        _ => panic!("unexpected message"),
-    }
-    match itr.next().unwrap() {
-        Message::ParameterDescription(_) => {}
-        _ => panic!("unexpected message"),
-    }
-    match itr.next().unwrap() {
-        Message::NoData => {}
         _ => panic!("unexpected message"),
     }
     match itr.next().unwrap() {
@@ -219,19 +211,11 @@ async fn query_execute_with_data() {
         .await
         .unwrap();
 
-    assert_eq!(messages.len(), 8);
+    assert_eq!(messages.len(), 6);
 
     let mut itr = messages.into_iter();
     match itr.next().unwrap() {
         Message::ParseComplete => {}
-        _ => panic!("unexpected message"),
-    }
-    match itr.next().unwrap() {
-        Message::ParameterDescription(_) => {}
-        _ => panic!("unexpected message"),
-    }
-    match itr.next().unwrap() {
-        Message::RowDescription(_) => {}
         _ => panic!("unexpected message"),
     }
     match itr.next().unwrap() {
