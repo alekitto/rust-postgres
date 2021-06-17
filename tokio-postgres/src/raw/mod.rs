@@ -1,6 +1,8 @@
 //! Raw (low-level) interface.
 
 #[cfg(feature = "raw")]
+pub(crate) mod describe;
+#[cfg(feature = "raw")]
 pub(crate) mod portal;
 #[cfg(feature = "raw")]
 pub(crate) mod query;
@@ -8,6 +10,8 @@ pub(crate) mod simple_query;
 #[cfg(feature = "raw")]
 pub(crate) mod statement;
 
+#[cfg(feature = "raw")]
+pub use describe::{describe, DescribeTarget};
 #[cfg(feature = "raw")]
 pub use portal::Portal;
 #[cfg(feature = "raw")]
