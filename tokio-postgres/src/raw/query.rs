@@ -46,6 +46,7 @@ pub async fn internal_prepare(
 
     let buf = client.with_buf(|buf| {
         frontend::parse(name, query, types_oid.iter().copied(), buf).map_err(Error::encode)?;
+        frontend::describe(b'S', &name, buf).map_err(Error::encode)?;
         Ok(buf.split().freeze())
     })?;
 
@@ -135,6 +136,8 @@ where
             Ok(Message::DataRow(_))
             | Ok(Message::ParseComplete)
             | Ok(Message::BindComplete)
+            | Ok(Message::ParameterDescription(_))
+            | Ok(Message::RowDescription(_))
             | Ok(Message::EmptyQueryResponse)
             | Ok(Message::CommandComplete(_))
             | Ok(Message::PortalSuspended)
