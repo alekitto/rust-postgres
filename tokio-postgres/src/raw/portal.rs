@@ -1,11 +1,13 @@
 use crate::client::InnerClient;
 use crate::codec::FrontendMessage;
 use crate::connection::RequestMessages;
+use crate::raw::Statement;
 use postgres_protocol::message::frontend;
 use std::sync::{Arc, Weak};
 
 struct Inner {
     client: Weak<InnerClient>,
+    statement: Statement,
     name: String,
 }
 
@@ -30,9 +32,14 @@ impl Drop for Inner {
 pub struct Portal(Arc<Inner>);
 
 impl Portal {
-    pub(crate) fn new<S: ToString>(client: &Arc<InnerClient>, name: S) -> Portal {
+    pub(crate) fn new<S: ToString>(
+        client: &Arc<InnerClient>,
+        statement: Statement,
+        name: S,
+    ) -> Portal {
         Portal(Arc::new(Inner {
             client: Arc::downgrade(client),
+            statement,
             name: name.to_string(),
         }))
     }
@@ -40,5 +47,10 @@ impl Portal {
     /// Gets the name of the current portal.
     pub fn name(&self) -> &str {
         &self.0.name
+    }
+
+    /// Gets the statement of the current portal.
+    pub(crate) fn statement(&self) -> &Statement {
+        &self.0.statement
     }
 }

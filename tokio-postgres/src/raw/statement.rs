@@ -1,27 +1,17 @@
-use crate::client::InnerClient;
+use crate::client::{InnerClient, Responses};
 use crate::codec::FrontendMessage;
 use crate::connection::RequestMessages;
-use postgres_protocol::message::frontend;
+use crate::Error;
+use bytes::{Bytes, BytesMut};
 use postgres_protocol::Oid;
 use std::sync::{Arc, Weak};
+use tokio::sync::RwLock;
 
 struct StatementInner {
     client: Weak<InnerClient>,
     name: String,
-    params: Vec<Oid>,
-}
-
-impl Drop for StatementInner {
-    fn drop(&mut self) {
-        if let Some(client) = self.client.upgrade() {
-            let buf = client.with_buf(|buf| {
-                frontend::close(b'S', &self.name, buf).unwrap();
-                frontend::sync(buf);
-                buf.split().freeze()
-            });
-            let _ = client.send(RequestMessages::Single(FrontendMessage::Raw(buf)));
-        }
-    }
+    param_types: Vec<Oid>,
+    buf: RwLock<BytesMut>,
 }
 
 /// A prepared statement.
@@ -31,11 +21,12 @@ impl Drop for StatementInner {
 pub struct Statement(Arc<StatementInner>);
 
 impl Statement {
-    pub(crate) fn new(inner: &Arc<InnerClient>, name: String, params: Vec<Oid>) -> Statement {
+    pub(crate) fn new(inner: &Arc<InnerClient>, name: String, param_types: Vec<Oid>) -> Statement {
         Statement(Arc::new(StatementInner {
             client: Arc::downgrade(inner),
             name,
-            params,
+            param_types,
+            buf: RwLock::new(BytesMut::new()),
         }))
     }
 
@@ -45,7 +36,23 @@ impl Statement {
     }
 
     /// Returns the expected types of the statement's parameters.
-    pub fn params(&self) -> &[Oid] {
-        &self.0.params
+    pub fn param_types(&self) -> &[Oid] {
+        &self.0.param_types
+    }
+
+    pub(crate) async fn append_buf(&self, bytes: Bytes) {
+        let mut buf = self.0.buf.write().await;
+        buf.extend(bytes);
+    }
+
+    pub(crate) async fn send(&self) -> Result<Responses, Error> {
+        let mut buf = self.0.buf.write().await;
+        let bytes = buf.clone().freeze();
+
+        let client = self.0.client.upgrade().ok_or_else(Error::closed)?;
+        let result = client.send(RequestMessages::Single(FrontendMessage::Raw(bytes)));
+        buf.clear();
+
+        result
     }
 }
