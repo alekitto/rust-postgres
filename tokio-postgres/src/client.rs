@@ -139,6 +139,15 @@ impl InnerClient {
         self.cached_typeinfo.lock().types.clear();
     }
 
+    /// Adds content to raw buffer
+    pub(crate) fn raw_buf<F, R>(&self, f: F) -> R
+    where
+        F: FnOnce(&mut BytesMut) -> R,
+    {
+        let mut buffer = self.buffer.lock();
+        f(&mut buffer)
+    }
+
     /// Call the given function with a buffer to be used when writing out
     /// postgres commands.
     pub fn with_buf<F, R>(&self, f: F) -> R

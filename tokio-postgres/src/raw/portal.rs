@@ -7,7 +7,7 @@ use std::sync::{Arc, Weak};
 
 struct Inner {
     client: Weak<InnerClient>,
-    statement: Statement,
+    _statement: Statement,
     name: String,
 }
 
@@ -39,7 +39,7 @@ impl Portal {
     ) -> Portal {
         Portal(Arc::new(Inner {
             client: Arc::downgrade(client),
-            statement,
+            _statement: statement,
             name: name.to_string(),
         }))
     }
@@ -47,10 +47,5 @@ impl Portal {
     /// Gets the name of the current portal.
     pub fn name(&self) -> &str {
         &self.0.name
-    }
-
-    /// Gets the statement of the current portal.
-    pub(crate) fn statement(&self) -> &Statement {
-        &self.0.statement
     }
 }

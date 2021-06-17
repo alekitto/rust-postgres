@@ -11,7 +11,7 @@ pub(crate) mod statement;
 #[cfg(feature = "raw")]
 pub use portal::Portal;
 #[cfg(feature = "raw")]
-pub use query::{bind, execute, prepare, QueryStream, Row};
+pub use query::{bind, execute, prepare, sync, QueryStream, Row};
 #[cfg(feature = "raw")]
 pub use simple_query::{simple_query, SimpleColumn, SimpleQueryRow, SimpleQueryStream};
 #[cfg(feature = "raw")]

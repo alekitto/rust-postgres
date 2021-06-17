@@ -4,7 +4,7 @@ use futures::TryStreamExt;
 use postgres_protocol::message::backend::Message;
 use std::convert::TryInto;
 use tokio_postgres::raw::{
-    bind, execute, prepare, simple_query, Row, SimpleColumn, SimpleQueryRow,
+    bind, execute, prepare, simple_query, sync, Row, SimpleColumn, SimpleQueryRow,
 };
 use tokio_postgres::types::Type;
 use tokio_postgres::Error;
@@ -86,11 +86,9 @@ async fn query_prepare() {
         "INSERT INTO foo (name) VALUES ($1), ($2)",
         "i",
         &[],
-    )
-    .await;
+    );
     let select =
-        prepare::<tokio_postgres::Error>(&client, "SELECT id, name FROM foo ORDER BY id", "s", &[])
-            .await;
+        prepare::<tokio_postgres::Error>(&client, "SELECT id, name FROM foo ORDER BY id", "s", &[]);
 
     assert!(matches!(insert, Ok(_)));
     assert!(matches!(select, Ok(_)));
@@ -112,7 +110,6 @@ async fn query_bind() {
         "i",
         &[],
     )
-    .await
     .unwrap();
 
     let portal = bind::<&[Option<BytesMut>; 2], tokio_postgres::Error>(
@@ -120,8 +117,7 @@ async fn query_bind() {
         insert,
         "i",
         &[Some(BytesMut::from("foo")), Some(BytesMut::from("foo"))],
-    )
-    .await;
+    );
 
     assert!(matches!(portal, Ok(_)));
 }
@@ -142,7 +138,6 @@ async fn query_execute_no_data() {
         "i",
         &[Type::INT4.oid()],
     )
-    .await
     .unwrap();
 
     let id = 1_i32.to_be_bytes();
@@ -155,10 +150,10 @@ async fn query_execute_no_data() {
             Some(BytesMut::from("bar")),
         ],
     )
-    .await
     .unwrap();
 
-    let messages: Vec<Message> = execute::<tokio_postgres::Error>(&client, &portal, 0)
+    execute::<tokio_postgres::Error>(&client, &portal, 0).unwrap();
+    let messages: Vec<Message> = sync::<tokio_postgres::Error>(&client)
         .await
         .unwrap()
         .try_collect()
@@ -177,7 +172,7 @@ async fn query_execute_no_data() {
         _ => panic!("unexpected message"),
     }
     match itr.next().unwrap() {
-        Message::RowDescription(_) => {}
+        Message::NoData => {}
         _ => panic!("unexpected message"),
     }
     match itr.next().unwrap() {
@@ -206,7 +201,6 @@ async fn query_execute_with_data() {
 
     let select =
         prepare::<tokio_postgres::Error>(&client, "SELECT * FROM foo WHERE name LIKE $1", "", &[])
-            .await
             .unwrap();
 
     let portal = bind::<&[Option<BytesMut>; 1], tokio_postgres::Error>(
@@ -215,10 +209,10 @@ async fn query_execute_with_data() {
         "",
         &[Some(BytesMut::from("foo%"))],
     )
-    .await
     .unwrap();
 
-    let messages: Vec<Message> = execute::<tokio_postgres::Error>(&client, &portal, 0)
+    execute::<tokio_postgres::Error>(&client, &portal, 0).unwrap();
+    let messages: Vec<Message> = sync::<tokio_postgres::Error>(&client)
         .await
         .unwrap()
         .try_collect()

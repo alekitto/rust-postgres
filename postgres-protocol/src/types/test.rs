@@ -10,11 +10,11 @@ use crate::IsNull;
 fn bool() {
     let mut buf = BytesMut::new();
     bool_to_sql(true, &mut buf);
-    assert_eq!(bool_from_sql(&buf).unwrap(), true);
+    assert!(bool_from_sql(&buf).unwrap());
 
     let mut buf = BytesMut::new();
     bool_to_sql(false, &mut buf);
-    assert_eq!(bool_from_sql(&buf).unwrap(), false);
+    assert!(!bool_from_sql(&buf).unwrap());
 }
 
 #[test]

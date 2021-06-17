@@ -1,4 +1,6 @@
 use crate::client::{InnerClient, Responses};
+use crate::codec::FrontendMessage;
+use crate::connection::RequestMessages;
 use crate::raw::portal::Portal;
 use crate::raw::statement::Statement;
 use crate::{Client, Error};
@@ -21,7 +23,7 @@ use std::sync::Arc;
 ///
 /// Prepared statements can be executed repeatedly, and may contain query parameters (indicated by `$1`, `$2`, etc),
 /// which are set when executed. Prepared statements can only be used with the connection that created them.
-pub async fn prepare<E>(
+pub fn prepare<E>(
     client: &Client,
     query: &str,
     name: &str,
@@ -30,10 +32,10 @@ pub async fn prepare<E>(
 where
     E: std::convert::From<crate::error::Error>,
 {
-    Ok(internal_prepare(client.inner(), query, name, types_oid).await?)
+    Ok(internal_prepare(client.inner(), query, name, types_oid)?)
 }
 
-pub async fn internal_prepare(
+pub fn internal_prepare(
     client: &Arc<InnerClient>,
     query: &str,
     name: &str,
@@ -44,21 +46,18 @@ pub async fn internal_prepare(
         name, types_oid, query
     );
 
-    let buf = client.with_buf(|buf| {
+    client.raw_buf(|buf| {
         frontend::parse(name, query, types_oid.iter().copied(), buf).map_err(Error::encode)?;
         frontend::describe(b'S', &name, buf).map_err(Error::encode)?;
-        Ok(buf.split().freeze())
+        Ok(())
     })?;
 
-    let stmt = Statement::new(&client, name.to_string(), types_oid.to_vec());
-
-    stmt.append_buf(buf).await;
-    Ok(stmt)
+    Ok(Statement::new(name.to_string(), types_oid.to_vec()))
 }
 
 /// Binds some parameters to a prepared statement, thus creating a portal
 /// Portals could be then executed or dropped when no more needed.
-pub async fn bind<'a, I, E>(
+pub fn bind<'a, I, E>(
     client: &Client,
     statement: Statement,
     name: &str,
@@ -70,12 +69,11 @@ where
     E: std::convert::From<crate::error::Error>,
 {
     let inner = client.inner();
-    let buf = inner.with_buf(|buf| {
+    inner.raw_buf(|buf| {
         encode_bind(&statement, params, &name, buf)?;
-        Ok(buf.split().freeze())
+        Ok(())
     })?;
 
-    statement.append_buf(buf).await;
     Ok(Portal::new(inner, statement, name))
 }
 
@@ -158,24 +156,31 @@ where
 
 /// Executes a bound statement (portal).
 /// "max_rows" could be set to 0 to not apply any limit to the query.
-pub async fn execute<E>(
-    client: &Client,
-    portal: &Portal,
-    max_rows: i32,
-) -> Result<QueryStream<E>, E>
+pub fn execute<E>(client: &Client, portal: &Portal, max_rows: i32) -> Result<(), E>
 where
     E: std::convert::From<crate::error::Error>,
 {
     let inner = client.inner();
-    let buf = inner.with_buf(|buf| {
+    inner.raw_buf(|buf| {
         frontend::execute(portal.name(), max_rows, buf).map_err(Error::encode)?;
-        frontend::sync(buf);
-        Ok(buf.split().freeze())
+        Ok(())
     })?;
 
-    let statement = portal.statement();
-    statement.append_buf(buf).await;
-    let responses = statement.send().await?;
+    Ok(())
+}
+
+/// Executes the buffered commands.
+pub async fn sync<E>(client: &Client) -> Result<QueryStream<E>, E>
+where
+    E: std::convert::From<crate::error::Error>,
+{
+    let inner = client.inner();
+    let bytes = inner.with_buf(|buf| {
+        frontend::sync(buf);
+        buf.split().freeze()
+    });
+
+    let responses = inner.send(RequestMessages::Single(FrontendMessage::Raw(bytes)))?;
 
     Ok(QueryStream {
         responses,
