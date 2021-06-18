@@ -11,6 +11,10 @@ struct Inner {
 
 impl Drop for Inner {
     fn drop(&mut self) {
+        if self.name.is_empty() {
+            return;
+        }
+
         if let Some(client) = self.client.upgrade() {
             if client.raw_buf(|buf| buf.is_empty()) {
                 let buf = client.with_buf(|buf| {
