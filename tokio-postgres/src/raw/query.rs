@@ -151,6 +151,7 @@ where
             | Ok(Message::PortalSuspended)
             | Ok(Message::ReadyForQuery(_))
             | Ok(Message::NoData)
+            | Ok(Message::CloseComplete)
             | Ok(Message::ErrorResponse(_)) => Poll::Ready(Some(Ok(message.unwrap()))),
             Err(e) => {
                 if e.is_closed() {
