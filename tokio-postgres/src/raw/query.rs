@@ -58,7 +58,7 @@ pub fn internal_prepare(
 /// Portals could be then executed or dropped when no more needed.
 pub fn bind<'a, I, E>(
     client: &Client,
-    statement: Statement,
+    statement: &Statement,
     name: &str,
     params_formats: &[i16],
     params: I,
@@ -72,7 +72,7 @@ where
     let inner = client.inner();
     inner.raw_buf(|buf| {
         encode_bind(
-            &statement,
+            statement,
             params_formats,
             params,
             &name,
@@ -82,7 +82,7 @@ where
         Ok(())
     })?;
 
-    Ok(Portal::new(inner, statement, name))
+    Ok(Portal::new(inner, name))
 }
 
 pub fn encode_bind<'a, I>(

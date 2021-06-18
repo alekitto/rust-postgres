@@ -1,10 +1,8 @@
 use crate::client::InnerClient;
-use crate::raw::Statement;
 use std::sync::{Arc, Weak};
 
 struct Inner {
     _client: Weak<InnerClient>,
-    _statement: Statement,
     name: String,
 }
 
@@ -16,14 +14,9 @@ struct Inner {
 pub struct Portal(Arc<Inner>);
 
 impl Portal {
-    pub(crate) fn new<S: ToString>(
-        client: &Arc<InnerClient>,
-        statement: Statement,
-        name: S,
-    ) -> Portal {
+    pub(crate) fn new<S: ToString>(client: &Arc<InnerClient>, name: S) -> Portal {
         Portal(Arc::new(Inner {
             _client: Arc::downgrade(client),
-            _statement: statement,
             name: name.to_string(),
         }))
     }

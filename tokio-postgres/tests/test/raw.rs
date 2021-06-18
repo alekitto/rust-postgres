@@ -114,7 +114,7 @@ async fn query_bind() {
 
     let portal = bind::<&[Option<BytesMut>; 2], tokio_postgres::Error>(
         &client,
-        insert,
+        &insert,
         "i",
         &[0],
         &[Some(BytesMut::from("foo")), Some(BytesMut::from("foo"))],
@@ -145,7 +145,7 @@ async fn query_execute_no_data() {
     let id = 1_i32.to_be_bytes();
     let portal = bind::<&[Option<BytesMut>; 2], tokio_postgres::Error>(
         &client,
-        insert,
+        &insert,
         "i",
         &[1, 0],
         &[
@@ -201,7 +201,7 @@ async fn query_execute_with_data_result_binary_format() {
 
     let portal = bind::<&[Option<BytesMut>; 1], tokio_postgres::Error>(
         &client,
-        select,
+        &select,
         "",
         &[0],
         &[Some(BytesMut::from("foo%"))],
@@ -286,7 +286,7 @@ async fn query_execute_with_data_result_text_format() {
 
     let portal = bind::<&[Option<BytesMut>; 1], tokio_postgres::Error>(
         &client,
-        select,
+        &select,
         "",
         &[0],
         &[Some(BytesMut::from("foo%"))],
