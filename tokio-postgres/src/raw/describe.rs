@@ -2,6 +2,7 @@ use crate::{Client, Error};
 use postgres_protocol::message::frontend;
 
 /// Enumerate the targets of a describe command
+#[derive(Debug)]
 pub enum DescribeTarget {
     /// Describe a statement (parameters + rows)
     Statement(String),
