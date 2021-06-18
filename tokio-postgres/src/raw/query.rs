@@ -51,7 +51,7 @@ pub fn internal_prepare(
         Ok(())
     })?;
 
-    Ok(Statement::new(name.to_string(), types_oid.to_vec()))
+    Ok(Statement::new(client, name.to_string(), types_oid.to_vec()))
 }
 
 /// Binds some parameters to a prepared statement, thus creating a portal

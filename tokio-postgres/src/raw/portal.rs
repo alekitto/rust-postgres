@@ -1,9 +1,32 @@
 use crate::client::InnerClient;
+use crate::codec::FrontendMessage;
+use crate::connection::RequestMessages;
+use postgres_protocol::message::frontend;
 use std::sync::{Arc, Weak};
 
 struct Inner {
-    _client: Weak<InnerClient>,
+    client: Weak<InnerClient>,
     name: String,
+}
+
+impl Drop for Inner {
+    fn drop(&mut self) {
+        if let Some(client) = self.client.upgrade() {
+            if client.raw_buf(|buf| buf.is_empty()) {
+                let buf = client.with_buf(|buf| {
+                    frontend::close(b'P', &self.name, buf).unwrap();
+                    frontend::sync(buf);
+                    buf.split().freeze()
+                });
+
+                let _ = client.send(RequestMessages::Single(FrontendMessage::Raw(buf)));
+            } else {
+                client.raw_buf(|buf| {
+                    frontend::close(b'P', &self.name, buf).unwrap();
+                });
+            }
+        }
+    }
 }
 
 /// A portal.
@@ -16,7 +39,7 @@ pub struct Portal(Arc<Inner>);
 impl Portal {
     pub(crate) fn new<S: ToString>(client: &Arc<InnerClient>, name: S) -> Portal {
         Portal(Arc::new(Inner {
-            _client: Arc::downgrade(client),
+            client: Arc::downgrade(client),
             name: name.to_string(),
         }))
     }

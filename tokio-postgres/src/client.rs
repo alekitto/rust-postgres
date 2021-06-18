@@ -139,7 +139,7 @@ impl InnerClient {
         self.cached_typeinfo.lock().types.clear();
     }
 
-    /// Adds content to raw buffer
+    /// Manipulates the raw buffer
     #[cfg(feature = "raw")]
     pub(crate) fn raw_buf<F, R>(&self, f: F) -> R
     where
