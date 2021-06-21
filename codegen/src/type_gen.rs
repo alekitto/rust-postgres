@@ -347,6 +347,27 @@ fn make_impl(w: &mut BufWriter<File>, types: &BTreeMap<u32, Type>) {
         }}
     }}
 
+    pub fn from_name(name: &str) -> Option<Inner> {{
+        match name {{
+",
+    )
+    .unwrap();
+
+    for type_ in types.values() {
+        writeln!(
+            w,
+            r#"            "{}" => Some(Inner::{}),"#,
+            type_.name, type_.variant
+        )
+        .unwrap();
+    }
+
+    writeln!(
+        w,
+        "            _ => None,
+        }}
+    }}
+
     pub fn oid(&self) -> Oid {{
         match *self {{",
     )

@@ -336,6 +336,12 @@ impl Type {
         Inner::from_oid(oid).map(Type)
     }
 
+    /// Returns the `Type` corresponding to the provided `name` if it
+    /// corresponds to a built-in type.
+    pub fn from_name(name: &str) -> Option<Type> {
+        Inner::from_name(name).map(Type)
+    }
+
     /// Returns the OID of the `Type`.
     pub fn oid(&self) -> Oid {
         self.0.oid()
