@@ -17,7 +17,7 @@ use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::Arc;
 
 const TYPEINFO_QUERY: &str = "\
-SELECT t.typname, t.typtype, t.typelem, r.rngsubtype, t.typbasetype, n.nspname, t.typrelid
+SELECT t.typname, t.typtype, t.typlen, t.typelem, r.rngsubtype, t.typbasetype, n.nspname, t.typrelid
 FROM pg_catalog.pg_type t
 LEFT OUTER JOIN pg_catalog.pg_range r ON r.rngtypid = t.oid
 INNER JOIN pg_catalog.pg_namespace n ON t.typnamespace = n.oid
@@ -26,7 +26,7 @@ WHERE t.oid = $1
 
 // Range types weren't added until Postgres 9.2, so pg_range may not exist
 const TYPEINFO_FALLBACK_QUERY: &str = "\
-SELECT t.typname, t.typtype, t.typelem, NULL::OID, t.typbasetype, n.nspname, t.typrelid
+SELECT t.typname, t.typtype, t.typlen, t.typelem, NULL::OID, t.typbasetype, n.nspname, t.typrelid
 FROM pg_catalog.pg_type t
 INNER JOIN pg_catalog.pg_namespace n ON t.typnamespace = n.oid
 WHERE t.oid = $1
@@ -152,11 +152,12 @@ async fn get_type(client: &Arc<InnerClient>, oid: Oid) -> Result<Type, Error> {
 
     let name: String = row.try_get(0)?;
     let type_: i8 = row.try_get(1)?;
-    let elem_oid: Oid = row.try_get(2)?;
-    let rngsubtype: Option<Oid> = row.try_get(3)?;
-    let basetype: Oid = row.try_get(4)?;
-    let schema: String = row.try_get(5)?;
-    let relid: Oid = row.try_get(6)?;
+    let type_length: i16 = row.try_get(2)?;
+    let elem_oid: Oid = row.try_get(3)?;
+    let rngsubtype: Option<Oid> = row.try_get(4)?;
+    let basetype: Oid = row.try_get(5)?;
+    let schema: String = row.try_get(6)?;
+    let relid: Oid = row.try_get(7)?;
 
     let kind = if type_ == b'e' as i8 {
         let variants = get_enum_variants(client, oid).await?;
@@ -179,7 +180,7 @@ async fn get_type(client: &Arc<InnerClient>, oid: Oid) -> Result<Type, Error> {
         Kind::Simple
     };
 
-    let type_ = Type::new(name, oid, kind, schema);
+    let type_ = Type::new(name, type_length, oid, kind, schema);
     client.set_type(oid, &type_);
 
     Ok(type_)

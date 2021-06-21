@@ -321,9 +321,10 @@ impl fmt::Display for Type {
 
 impl Type {
     /// Creates a new `Type`.
-    pub fn new(name: String, oid: Oid, kind: Kind, schema: String) -> Type {
+    pub fn new(name: String, length: i16, oid: Oid, kind: Kind, schema: String) -> Type {
         Type(Inner::Other(Arc::new(Other {
             name,
+            length,
             oid,
             kind,
             schema,
@@ -350,6 +351,11 @@ impl Type {
     /// Returns the kind of this type.
     pub fn kind(&self) -> &Kind {
         self.0.kind()
+    }
+
+    /// Returns the length of this type.
+    pub fn length(&self) -> i16 {
+        self.0.length()
     }
 
     /// Returns the schema of this type.

@@ -14,6 +14,7 @@ const PG_RANGE_DAT: &str = include_str!("pg_range.dat");
 
 struct Type {
     name: String,
+    length: i16,
     variant: String,
     ident: String,
     kind: String,
@@ -205,6 +206,7 @@ fn parse_types() -> BTreeMap<u32, Type> {
         let oid = raw_type["oid"].parse::<u32>().unwrap();
 
         let name = raw_type["typname"].clone();
+        let len = raw_type["typlen"].clone();
 
         let ident = range_vector_re.replace(&name, "_$1");
         let ident = array_re.replace(&ident, "${1}_array");
@@ -252,6 +254,7 @@ fn parse_types() -> BTreeMap<u32, Type> {
 
             let type_ = Type {
                 name,
+                length: -1,
                 variant,
                 ident,
                 kind: "A".to_string(),
@@ -262,8 +265,10 @@ fn parse_types() -> BTreeMap<u32, Type> {
             types.insert(array_type_oid, type_);
         }
 
+        println!("{}", len);
         let type_ = Type {
             name,
+            length: len.parse().unwrap_or(-1),
             variant,
             ident,
             kind,
@@ -288,6 +293,7 @@ use crate::{{Type, Oid, Kind}};
 #[derive(PartialEq, Eq, Debug, Hash)]
 pub struct Other {{
     pub name: String,
+    pub length: i16,
     pub oid: Oid,
     pub kind: Kind,
     pub schema: String,
@@ -380,6 +386,26 @@ fn make_impl(w: &mut BufWriter<File>, types: &BTreeMap<u32, Type>) {
     writeln!(
         w,
         "            Inner::Other(ref u) => u.oid,
+        }}
+    }}
+
+    pub fn length(&self) -> i16 {{
+        match *self {{",
+    )
+    .unwrap();
+
+    for type_ in types.values() {
+        writeln!(
+            w,
+            "            Inner::{} => {},",
+            type_.variant, type_.length
+        )
+        .unwrap();
+    }
+
+    writeln!(
+        w,
+        "            Inner::Other(ref u) => u.length,
         }}
     }}
 
