@@ -88,12 +88,13 @@ where
             | Ok(Message::RowDescription(_))
             | Ok(Message::DataRow(_))
             | Ok(Message::ReadyForQuery(_))
-            | Ok(Message::EmptyQueryResponse) => Poll::Ready(Some(Ok(message.unwrap()))),
+            | Ok(Message::EmptyQueryResponse)
+            | Ok(Message::ErrorResponse(_)) => Poll::Ready(Some(Ok(message.unwrap()))),
             Err(e) => {
                 if e.is_closed() {
                     Poll::Ready(None)
                 } else {
-                    Poll::Ready(Some(Err(Error::unexpected_message().into())))
+                    Poll::Ready(Some(Err(e.into())))
                 }
             }
             _ => Poll::Ready(Some(Err(Error::unexpected_message().into()))),
