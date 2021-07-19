@@ -147,12 +147,30 @@ impl SimpleQueryRow {
 pub struct SimpleColumn {
     name: String,
     type_: Option<Type>,
+    format: i16,
+    table_oid: i32,
+    column_id: i16,
+    type_modifier: i32,
 }
 
 #[cfg(feature = "raw")]
 impl SimpleColumn {
-    pub(crate) fn new(name: String, type_: Option<Type>) -> SimpleColumn {
-        SimpleColumn { name, type_ }
+    pub(crate) fn new(
+        name: String,
+        type_: Option<Type>,
+        format: i16,
+        table_oid: i32,
+        column_id: i16,
+        type_modifier: i32,
+    ) -> SimpleColumn {
+        SimpleColumn {
+            name,
+            type_,
+            format,
+            table_oid,
+            column_id,
+            type_modifier,
+        }
     }
 
     /// Returns the name of the column.
@@ -165,6 +183,26 @@ impl SimpleColumn {
         &self.type_
     }
 
+    /// Returns the format of the field.
+    pub fn format(&self) -> i16 {
+        self.format
+    }
+
+    /// Returns the field's table oid.
+    pub fn table_oid(&self) -> i32 {
+        self.table_oid
+    }
+
+    /// Returns the column id.
+    pub fn column_id(&self) -> i16 {
+        self.column_id
+    }
+
+    /// Returns the column id.
+    pub fn type_modifier(&self) -> i32 {
+        self.type_modifier
+    }
+
     /// Converts a row description body into a set of simple columns
     pub fn from_row_description_body(body: RowDescriptionBody) -> Result<Arc<[Self]>, Error> {
         Ok(body
@@ -173,6 +211,10 @@ impl SimpleColumn {
                 Ok(SimpleColumn::new(
                     f.name().to_string(),
                     Type::from_oid(f.type_oid()),
+                    f.format(),
+                    f.table_oid() as i32,
+                    f.column_id(),
+                    f.type_modifier(),
                 ))
             })
             .collect::<Vec<_>>()
