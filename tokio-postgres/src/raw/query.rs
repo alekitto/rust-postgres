@@ -71,14 +71,7 @@ where
 {
     let inner = client.inner();
     inner.raw_buf(|buf| {
-        encode_bind(
-            statement,
-            params_formats,
-            params,
-            &name,
-            result_formats,
-            buf,
-        )?;
+        encode_bind(statement, params_formats, params, name, result_formats, buf)?;
         Ok(())
     })?;
 

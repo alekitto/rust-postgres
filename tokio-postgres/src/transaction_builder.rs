@@ -38,12 +38,14 @@ impl<'a> TransactionBuilder<'a> {
     }
 
     /// Sets the isolation level of the transaction.
+    #[must_use]
     pub fn isolation_level(mut self, isolation_level: IsolationLevel) -> Self {
         self.isolation_level = Some(isolation_level);
         self
     }
 
     /// Sets the access mode of the transaction.
+    #[must_use]
     pub fn read_only(mut self, read_only: bool) -> Self {
         self.read_only = Some(read_only);
         self
@@ -54,6 +56,7 @@ impl<'a> TransactionBuilder<'a> {
     /// If the transaction is also serializable and read only, creation of the transaction may block, but when it
     /// completes the transaction is able to run with less overhead and a guarantee that it will not be aborted due to
     /// serialization failure.
+    #[must_use]
     pub fn deferrable(mut self, deferrable: bool) -> Self {
         self.deferrable = Some(deferrable);
         self
