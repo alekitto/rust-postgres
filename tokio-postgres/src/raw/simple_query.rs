@@ -10,7 +10,7 @@ use bytes::Bytes;
 #[cfg(feature = "raw")]
 use fallible_iterator::FallibleIterator;
 #[cfg(feature = "raw")]
-use futures::{ready, Stream};
+use futures_util::{ready, Stream};
 use log::debug;
 #[cfg(feature = "raw")]
 use pin_project_lite::pin_project;
